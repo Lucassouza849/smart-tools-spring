@@ -14,12 +14,19 @@ import br.com.smarttools.gerararquivo.GravaLeArquivoTxt;
 import br.com.smarttools.listaObj.ListaObj;
 import br.com.smarttools.listaObj.PilhaObj;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZonedDateTime;
@@ -146,11 +153,37 @@ public class ExtratoController {
     }
 
 
+//    @GetMapping("/txt/{id}")
+//    public ResponseEntity getTxt(@PathVariable Integer id) {
+//        List<Extrato> extratos = faturavelRepository.findAll();
+//        List<Extrato> lista = new ArrayList<>();
+//        if (!extratos.isEmpty()) {
+//            for (Extrato extrato : extratos) {
+//                if (extrato.getUsuario() != null && extrato.getUsuario().getId().equals(id)) {
+//                    lista.add(extrato);
+//                }
+//            }
+//            GravaLeArquivoTxt grava = new GravaLeArquivoTxt();
+//
+//            grava.gravaArquivoTxt(lista, "extrato.txt");
+//
+//            return ResponseEntity.status(200).build();
+//        }
+//        return ResponseEntity.status(204).build();
+//    }
+
     @GetMapping("/txt/{id}")
     public ResponseEntity getTxt(@PathVariable Integer id) {
+
         List<Extrato> extratos = faturavelRepository.findAll();
         List<Extrato> lista = new ArrayList<>();
-        if (!extratos.isEmpty()) {
+        if (extratos.isEmpty()) {
+
+            return ResponseEntity.status(402).build();
+        }
+
+
+        try {
             for (Extrato extrato : extratos) {
                 if (extrato.getUsuario() != null && extrato.getUsuario().getId().equals(id)) {
                     lista.add(extrato);
@@ -158,11 +191,34 @@ public class ExtratoController {
             }
             GravaLeArquivoTxt grava = new GravaLeArquivoTxt();
 
-            grava.gravaArquivoTxt(lista, "extrato.txt");
+            String nomeArquivo = "extrato.txt";
 
-            return ResponseEntity.status(200).build();
+            grava.gravaArquivoTxt(lista, nomeArquivo);
+
+            File file = new File(nomeArquivo);
+            Path path = Paths.get(file.getAbsolutePath());
+            ByteArrayResource resource = new ByteArrayResource(Files.readAllBytes(path));
+            HttpHeaders header = new HttpHeaders();
+
+            System.out.println(path);
+
+            header.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + nomeArquivo);
+            header.add("Cache-Control", "no-cache, no-store,must-revalidate");
+            header.add("Pragma", "no-cache");
+            header.add("Expires", "0");
+
+            return ResponseEntity
+                    .ok()
+                    .contentLength(file.length())
+                    .headers(header)
+                    .contentType(MediaType.parseMediaType("application/octet-stream"))
+                    .body(resource);
+        } catch (IOException e) {
+
+            e.printStackTrace();
+            return ResponseEntity.notFound().build();
+
         }
-        return ResponseEntity.status(204).build();
     }
 
     @PostMapping("adicionar-transacao/")
