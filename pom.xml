@@ -15,6 +15,7 @@
 	<description>projeto de pesquisa e inovação do curso de ADS</description>
 	<properties>
 		<java.version>11</java.version>
+		<maven.teste.skip>true</maven.teste.skip>
 	</properties>
 	<dependencies>
 
